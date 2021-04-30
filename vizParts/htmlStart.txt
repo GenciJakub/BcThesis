@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    input[type="range"] {
+      position: absolute;
+      left: 100px;
+      top: 25px;
+      width: 300px;
+      height: 20px;
+      margin: 0;
+    }
+
+    #chrViz00 {
+      height: 50px;
+      width: 100%;
+      background-color: powderblue;
+    }
+
+    output {
+      position: absolute;
+      left: 450px;
+      top: 25px;
+    }
+
+    svg { font: 10px sans-serif; }
+ 
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .y.axis path {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .brush .extent {
+      stroke: #fff;
+      fill-opacity: .125;
+      shape-rendering: crispEdges;
+    }
+
+    .line { fill: none; }
+  </style>
+
+  <!--<script src="d3/d3.js"></script>-->
+
+  <script src="https://d3js.org/d3.v4.js"></script>   
+  <div id="chrViz00"> 
+    <input type="range" min="100000" max="2000000" step="100000" value="100000" oninput="this.nextElementSibling.value = this.value" onchange="updateSlider(this.value)">
+    <output>100000 </output>
+  </div>
+  <div id="chrViz1" ></div>
+  <div id="chrViz2" ></div>
+  <div id="chrViz3" height="640"></div>
+  <div id="chrViz4" height="560"></div>
+  <div id="chrViz5" height="560"></div>
+  <div id="chrViz6" height="560"></div>
+  <div id="chrViz7" height="560"></div>
+  <div id="chrViz8" height="560"></div>
+  <div id="chrViz9" height="560"></div>
+  <div id="chrViz10" height="560"></div>
+  <div id="chrViz11" height="560"></div>
+  <div id="chrViz12" height="560"></div>
+  <div id="chrViz13" height="560"></div>
+  <div id="chrViz14" height="560"></div>
+  <div id="chrViz15" height="560"></div>
+  <div id="chrViz16" height="560"></div>
+  <div id="chrViz17" height="560"></div>
+  <div id="chrViz18" height="560"></div>
+  <div id="chrViz19" height="560"></div>
+  <div id="chrViz20" height="560"></div>
+  <div id="chrViz21" height="560"></div>
+  <div id="chrViz22" height="560"></div>
+  <div id="chrViz23" height="560"></div>
+</head>
+<body>
