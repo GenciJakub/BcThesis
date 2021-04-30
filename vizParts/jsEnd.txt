@@ -1,0 +1,480 @@
+///////////////////////////////////////////////////////////
+//////////////////////// G R A P H ////////////////////////
+///////////////////////////////////////////////////////////
+
+svgToUse = svgs[HTMLchromNumber-1];
+objectToUse = objectArray[HTMLchromNumber - 1];
+
+//Set the dimensions and margins of the graph
+var margin = {top: 50, right: 230, bottom: (350 + 20 * HTMLsampleCount), left: 60};
+var margin2 = {top: 400, right: 230, bottom: 250, left: 60};
+var margin3 = {top: (450 + 20 * HTMLsampleCount), right: 230, bottom: 150, left: 60};
+var height = (650 + 20 * HTMLsampleCount) - margin.top - margin.bottom;
+var height2 = (650 + 20 * HTMLsampleCount) - margin2.top - margin2.bottom;
+var height3 = (650 + 20 * HTMLsampleCount) - margin3.top - margin3.bottom;
+objectToUse.width = getWidth() - margin.left - margin.right;
+
+objectToUse.x = d3.scaleLinear().range([ 0, objectToUse.width - 100 ]);
+objectToUse.x2 = d3.scaleLinear().range([ 0, objectToUse.width - 100 ]);
+objectToUse.x3 = d3.scaleLinear().range([ 0, objectToUse.width - 100 ]);
+objectToUse.y = d3.scaleLinear().range([ height, 0 ]);
+objectToUse.y2 = d3.scaleBand().range([ height2, 0]);
+objectToUse.y3 = d3.scaleLinear().range([ height3, 0]);
+
+objectToUse.xAxis = d3.axisBottom(objectToUse.x);
+objectToUse.xAxis2 = d3.axisBottom(objectToUse.x2);
+objectToUse.xAxis3 = d3.axisBottom(objectToUse.x3);
+objectToUse.yAxis = d3.axisLeft(objectToUse.y);
+objectToUse.yAxis2 = d3.axisLeft(objectToUse.y2);
+
+
+objectToUse.brush = d3.brushX()
+  .extent([[0, 0], [objectToUse.width - 100, height3]])
+  .on("end", updateChart);
+
+svgToUse = d3.select(`#${HTMLdivElement}`).append("svg")
+  .attr("width", objectToUse.width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom);
+
+//Clip path for the first graph  
+svgToUse.append("defs").append("clipPath") 
+  .attr("id", `clip_${objectToUse.chr}`)
+  .append("rect")
+  .attr("width", objectToUse.width - 100)
+  .attr("height", height);  
+
+
+objectToUse.focus = svgToUse.append("g")
+  .attr("class", "focus")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+objectToUse.rohFocus = svgToUse.append("g")
+  .attr("class", "focus")
+  .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+objectToUse.context = svgToUse.append("g")
+  .attr("class", "context")
+  .attr("transform", "translate(" + margin3.left + "," + margin3.top + ")");
+ 
+objectToUse.cursorFocus = svgToUse
+ .append('g')
+ .append('line')
+ .attr("class", "mouse-line")
+   .attr("stroke", "black")
+   .attr("stroke-width", 1.5)
+   .style("opacity", 0)
+   .attr("y1", margin.top - height)
+	.attr("y2", margin.top);
+
+// Create the text that travels along the curve of chart
+objectToUse.cursorText = svgToUse
+ .append('g')
+ .append('text')
+   .style("opacity", 0)
+   .attr("text-anchor", "left")
+   .attr("alignment-baseline", "middle");  
+
+originalDataArray[HTMLchromNumber - 1] = d3.csvParse(stringDataArray[HTMLchromNumber - 1],function(d) {
+  return {
+    Point : +d.midPoint,
+    Name : d.sample,
+    SnpCount : +d.snpCount,
+    Rate : +d.rateAZ
+  }
+});
+
+makeChart(originalDataArray[HTMLchromNumber - 1], 1);
+
+function makeChart(dataset, initial) {
+  objectToUse.x.domain([0, d3.max(dataset, function(d) {return d.Point})]); //249150000
+  objectToUse.x2.domain(objectToUse.x.domain());
+  objectToUse.x3.domain(objectToUse.x.domain());
+  objectToUse.y.domain([0,1]);
+  objectToUse.y3.domain(objectToUse.y.domain());
+  
+  if (Boolean(initial)) {
+  // text label for the x axis
+  svgToUse.append("text")
+    .attr("x", (objectToUse.width/2) )
+    .attr("y",  height + 90)
+    .style("text-anchor", "middle")
+    .text("Position on chromosome " + HTMLchromNumber); 
+
+  
+  // text label for the y axis
+  svgToUse.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 70 - margin.left)
+    .attr("x",0 - (height*2/3-3))
+    .attr("dy", "1em")
+    .style("text-anchor", "middle")
+    .text("Homozygosity rate");    
+
+  objectToUse.graphName = svgToUse
+  .append('g')
+  .append('text')
+   .attr("x", (objectToUse.width / 2))             
+   .attr("y", 20)// - (margin.top / 2))
+   .attr("text-anchor", "middle")  
+   .style("font-size", "16px")   
+   .text("Chromosome " + HTMLchromNumber);   
+
+  }
+
+  //remove drawn paths
+  d3.selectAll(`path.line_${objectToUse.chr}`).remove();
+  d3.selectAll(`path.line2_${objectToUse.chr}`).remove();
+
+  // group the data: I want to draw one line per group
+  var sumstat = d3.nest() // nest function allows to group the calculation per level of a factor
+    .key( function (d) { return d.Name; })
+    .entries(dataset);  
+
+  // color palette
+  objectToUse.sampleNames = sumstat.map(function(d){ return d.key }) // list of group names
+  objectToUse.colors = d3.scaleOrdinal()
+    .domain(objectToUse.sampleNames)
+    .range(["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"])//d3-scale-chromatic, Category 10
+
+  objectToUse.y2.domain(objectToUse.sampleNames); 
+
+  objectToUse.lines = objectToUse.focus.append("g");
+  objectToUse.lines.attr("clip-path", `url(#clip_${objectToUse.chr})`);
+
+
+  // Draw the line
+  objectToUse.lines.selectAll(".line")
+    .data(sumstat)
+    .enter()
+    .append("path")
+      .attr("class", `line_${objectToUse.chr}`)
+      .attr("fill", "none")
+      .attr("stroke", function(d){ return objectToUse.colors(d.key) })
+      .attr("stroke-width", 1.5)
+      .attr("d", function(d){                             
+        return d3.line()
+          .x(function(d) { return objectToUse.x(d.Point); })
+          .y(function(d) { return objectToUse.y(d.Rate); })
+          (d.values)
+      })
+  
+  if (Boolean(initial)) {
+    objectToUse.focus.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(objectToUse.xAxis);
+
+    objectToUse.focus.append("g")
+      .attr("class", "axis axis--y")
+      .call(objectToUse.yAxis);
+
+    objectToUse.rohFocus.append("g")
+    .attr("class", "axis axis--x")
+    .attr("transform", "translate(0," + height2 + ")")
+    .call(objectToUse.xAxis2);   
+    
+    objectToUse.rohFocus.append("g")
+      .attr("class", "axis axis--y")
+      .attr("opacity",0)
+      .call(objectToUse.yAxis2);
+  
+  var mySnps = [...rohs];
+  svgToUse
+    .selectAll("boxes")
+    .data(mySnps.filter(function(element){ return element.chr == HTMLchromNumber}))
+    .enter()
+    .append("rect")
+        .attr("class",`box_${objectToUse.chr}`)
+        .attr("x", function(d){return(objectToUse.x2(d.start) + margin2.left)}) // console.log(x(d.value.q1)) ;
+        .attr("width", function(d){ return(objectToUse.x2(d.end)-objectToUse.x2(d.start))}) //console.log(x(d.value.q3)-x(d.value.q1))
+        .attr("y", function(d) { return objectToUse.y2(d.sample) + margin2.top; })
+        .attr("height", 5 )
+        .attr("stroke", function(d){ return objectToUse.colors(d.sample) })
+        .style("fill", function(d){ return objectToUse.colors(d.sample) })
+        .style("opacity", 1)
+  }
+
+  objectToUse.lines = objectToUse.context.append("g");
+  objectToUse.lines.attr("clip-path", "url(#clip)"); 
+
+  objectToUse.lines.selectAll(".line")
+    .data(sumstat)
+    .enter()
+    .append("path")
+      .attr("class", `line_${objectToUse.chr}`)
+      .attr("fill", "none")
+      .attr("stroke", function(d){ return objectToUse.colors(d.key) })
+      .attr("stroke-width", 1.5)
+      .attr("d", function(d){                             
+        return d3.line()
+          .x(function(d) { return objectToUse.x3(d.Point); })
+          .y(function(d) { return objectToUse.y3(d.Rate); })
+          (d.values)
+      })
+  
+  if (Boolean(initial)) {
+    objectToUse.context.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height3 + ")")
+      .call(objectToUse.xAxis3);
+
+    objectToUse.context.append("g")
+      .attr("class", "brush")
+      .call(objectToUse.brush)
+  }    
+
+    // Create a rect on top of the svg area: this rectangle recovers mouse position
+    svgToUse
+    .append('rect')
+    .style("fill", "none")
+    .style("pointer-events", "all")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .attr('width', objectToUse.width-100)
+    .attr('height', height)
+    .on('mouseover', mouseover)
+    .on('mousemove', mousemove)
+    .on('mouseout', mouseout);
+
+  if (Boolean(initial)) {
+    // Legend creation
+    for (index = 0; index < objectToUse.sampleNames.length; index++) {
+      svgToUse.append("circle").attr("cx",objectToUse.width).attr("cy",(130 + (30*index))).attr("r", 6).style("fill", objectToUse.colors(objectToUse.sampleNames[index]))
+      svgToUse.append("text").attr("x", (objectToUse.width + 20)).attr("y", (135 + (30*index))).text(objectToUse.sampleNames[index]).style("font-size", "15px").attr("alignment-baseline","middle")
+    }
+
+    svgs[HTMLchromNumber - 1] = svgToUse;
+
+  } 
+};
+
+///////////////////////////////////////////////////////////////////
+//////////////////////// F U N C T I O N S ////////////////////////
+///////////////////////////////////////////////////////////////////
+
+//Returns width of the div element (based on chromosome length). 
+//Categories are based on rounding the 10-based logarithm of chromosome length (based on Human Genome Assembly, varsion GRCh38.p13)
+function getWidth() {
+  var baseWidth = 1800;
+  var step = 100;
+
+  switch(HTMLchromNumber) {
+    case 1:
+    case 2:
+      return baseWidth;
+    case 3:
+    case 4:
+    case 5:
+      return baseWidth - step*1;
+    case 6:
+    case 7:
+    case 8:
+      return baseWidth - step*2;
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+      return baseWidth - step*3;
+    case 14:
+    case 15:
+    case 16:
+      return baseWidth - step*4;
+    case 17:
+    case 18:
+      return baseWidth - step*5;
+    case 19:
+    case 20:
+      return baseWidth - step*6;
+    case 21:
+    case 22:
+      return baseWidth - step*7;
+    case 23:
+      return baseWidth - step*2;     
+    default:
+      return baseWidth;  
+  }
+}
+
+//Function implementing zooming functionality.
+function updateChart() {
+  objectToUse = objectArray[+mouseOnDiv - 1];
+  svgToUse = svgs[+mouseOnDiv - 1];
+
+  //Getting and setting new x-axis range
+  var selection = d3.event.selection;
+  if (selection == null) {
+    objectToUse.x.domain(objectToUse.x3.domain());
+    objectToUse.x2.domain(objectToUse.x3.domain());
+  } else {
+    objectToUse.x.domain(selection.map(objectToUse.x3.invert, objectToUse.x3));
+    objectToUse.x2.domain(selection.map(objectToUse.x3.invert, objectToUse.x3));
+  }
+  
+  //Computing and drawing new line
+  objectToUse.focus.selectAll(`path.line_${objectToUse.chr}`) 
+    .attr("d", function(d){                             
+      return d3.line()
+        .x(function(d) { return objectToUse.x(d.Point); })
+        .y(function(d) { return objectToUse.y(d.Rate); })
+        (d.values)
+    })
+    objectToUse.focus.select(".axis--x").call(objectToUse.xAxis);
+    objectToUse.focus.select(".axis--y").call(objectToUse.yAxis);
+
+  //Drawing the new ROH rectangles
+  objectToUse.rohFocus.select(".axis--x").call(objectToUse.xAxis2);
+  objectToUse.rohFocus.select(".axis--y").call(objectToUse.yAxis2);
+  redrawBoxes();
+}
+
+//Function responsible for redrawing the ROH rectangles
+function redrawBoxes() {
+  //Removing old rectangles
+  d3.selectAll(`rect.box_${objectToUse.chr}`).remove();
+  
+  //Computing borders of rectangles which should be shown
+  var newSnps = [...rohs];
+  newSnps = newSnps.filter(function(element){ return element.chr == objectToUse.chr});
+  var newObjSnps = [];
+  newSnps.forEach( function(element) {
+    if (element.start > objectToUse.x2.domain()[0] && element.end < objectToUse.x2.domain()[1]) {
+      newObjSnps.push({start: element.start, end: element.end, sample: element.sample});
+    }
+    if (element.start < objectToUse.x2.domain()[0] && element.end > objectToUse.x2.domain()[1]) {
+      newObjSnps.push({start: objectToUse.x2.domain()[0], end: objectToUse.x2.domain()[1], sample: element.sample});
+    }
+    if (element.start < objectToUse.x2.domain()[0] && element.end < objectToUse.x2.domain()[1]) {
+      newObjSnps.push({start: objectToUse.x2.domain()[0], end: element.end, sample: element.sample});
+    }
+    if (element.start > objectToUse.x2.domain()[0] && element.end > objectToUse.x2.domain()[1]) {
+      newObjSnps.push({start: element.start, end: objectToUse.x2.domain()[1], sample: element.sample});
+    }
+  })
+  
+  //Drawing the ROH rectangles
+  svgToUse
+    .selectAll("boxes")
+    .data(newObjSnps)
+    .enter()
+    .append("rect")
+      .attr("class",`box_${objectToUse.chr}`)
+      .attr("x", function(d){return(objectToUse.x2(d.start)+margin2.left)})
+      .attr("width", function(d){ return(objectToUse.x2(d.end)-objectToUse.x2(d.start))})
+      .attr("y", function(d) { return objectToUse.y2(d.sample) + margin2.top; })
+      .attr("height", 5 )
+      .attr("stroke", function(d){ return objectToUse.colors(d.sample) })
+      .style("fill", function(d){ return objectToUse.colors(d.sample) })
+      .style("opacity", 1)
+}
+
+//Called when the mouse enters the area of the main graph.
+function mouseover() {
+  objectToUse = objectArray[+mouseOnDiv - 1];
+  svgToUse = svgs[+mouseOnDiv - 1];
+  //Makes line and detailed text visible
+  objectToUse.cursorFocus.style("opacity", 1)
+  objectToUse.cursorText.style("opacity",1)
+}
+
+//Called when mouse is moving in the area of the main graph.
+function mousemove() {
+  //Get the x-coordinate (graph) of the mouse 
+  var x0 = objectToUse.x.invert(d3.mouse(this)[0]);
+
+  //Get the nearest interval border
+  var intervalBorder = (Math.round(x0 / (intervalSize / 10))*(intervalSize / 10));
+  if ((intervalBorder % intervalSize) > (intervalSize / 2)) { intervalBorder -= (intervalBorder % (intervalSize / 2)); } 
+    else { intervalBorder += ((intervalSize / 2) - (intervalBorder % intervalSize)); }
+  if (intervalBorder < (intervalSize / 2)) { intervalBorder = (intervalSize / 2); }
+  if (intervalBorder > objectToUse.x.domain()[1]) { intervalBorder -= intervalSize; }
+
+  //Create the string containing showed text
+  var textToPrint = `Interval midpoint: ${intervalBorder}\n\n`;
+  textToPrint += `Sample name / SNP count / Homozygosity rate\n`;
+  var arrayToUse;
+  if (rescaledDataArray[objectToUse.chr - 1] == null) {arrayToUse = originalDataArray[objectToUse.chr - 1]} 
+    else {arrayToUse = rescaledDataArray[objectToUse.chr - 1];}
+  arrayToUse.forEach(element => {
+    if (element.Point == intervalBorder) {
+      //console.log(element);
+      textToPrint += `${element.Name} / ${element.SnpCount} / ${Math.round(element.Rate * 1000)/1000} \n`;
+    }
+  });
+  
+  //Show the text on the correct position
+  objectToUse.cursorFocus.attr("transform", "translate(" + (margin.left + objectToUse.x(intervalBorder)) + "," + height + ")");
+  objectToUse.cursorText
+    .html(textToPrint)
+    .style("white-space","pre-wrap")
+    .attr("x", objectToUse.x(intervalBorder)+70)
+    .attr("y", height/2);
+}
+
+//Called when the mouse leaves the area of the main graph.
+function mouseout() {
+  //Makes line and detailed text invisible
+  objectToUse.cursorFocus.style("opacity", 0)
+  objectToUse.cursorText.style("opacity", 0)
+}
+
+//Called after slider changes value.
+//Calls other functions to recalculate the data and redraw the main graph with the new interval size.
+function updateSlider(slideAmount)
+{
+  //Setting the value of global variable
+  intervalSize = slideAmount;
+
+  //Calling the functions
+  for (let index = 0; index < originalDataArray.length; index++) {
+    if (originalDataArray[index] == null) {continue;}
+    rescaledDataArray[index] = rescaleData(slideAmount, index);
+    objectToUse = objectArray[index];
+    svgToUse = svgs[index];
+    makeChart(rescaledDataArray[index],0);
+  }
+}
+
+function rescaleData(intervalSize, chrIndex) {
+  //Slider moved to starting position
+  if (intervalSize == 100000) { return originalDataArray[chrIndex]; }
+  
+  //Number of computed new intervals and read 100 kb intervals
+  var newIntervalCount = 0;
+  var originalIntervalCount = 0;                  //goes up to (intervalSize / 100000) - 1
+  //First name of sample
+  var currentSampleName = originalDataArray[chrIndex][0].Name;
+  //Number of snps and homozygous snps in one interval
+  var totalSnpCounts = 0;
+  var homozygSnps = 0;
+  //Array with source data and new array
+  var toRescale = originalDataArray[chrIndex];
+  var newArray = [];
+  
+  //Recalculating the values
+  for (let index = 0; index < toRescale.length; index++) {
+    //New sample in the array
+    if (currentSampleName != toRescale[index].Name) {
+      newArray.push({Point:((intervalSize/2)+intervalSize*newIntervalCount), Name:currentSampleName, SnpCount:totalSnpCounts, Rate:(homozygSnps/totalSnpCounts)});
+      currentSampleName = toRescale[index].Name;
+      originalIntervalCount = 0;
+      totalSnpCounts = 0;
+      homozygSnps = 0;
+      newIntervalCount = 0;
+    }
+
+    //Border of the new interval reached
+    if (originalIntervalCount == (intervalSize / 100000)) {
+      newArray.push({Point:((intervalSize/2)+intervalSize*newIntervalCount), Name:currentSampleName, SnpCount:totalSnpCounts, Rate:(homozygSnps/totalSnpCounts)});
+      originalIntervalCount = 0;
+      totalSnpCounts = 0;
+      homozygSnps = 0;
+      newIntervalCount++;
+    }
+
+    //Processing one 100 kb interval
+    totalSnpCounts += toRescale[index].SnpCount;
+    homozygSnps += Math.round(toRescale[index].SnpCount * toRescale[index].Rate);
+    originalIntervalCount++;    
+  }
+  return newArray;
+}

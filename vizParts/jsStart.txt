@@ -1,0 +1,96 @@
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////// G L O B A L    V A R I A B L E S ////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+
+//Data passed from the HTML.
+var HTMLdivElement = document.currentScript.getAttribute('which_element');
+var HTMLfirstChrom = document.currentScript.getAttribute('first');
+var HTMLchromNumber = +document.currentScript.getAttribute('chrom');
+var HTMLsampleCount = +document.currentScript.getAttribute('sample_count');
+
+//Current size of the data interval.
+var intervalSize = 100000;
+//Array for data from BCFTools/ROH. Will be filled after parsing the input.
+var originalDataArray;
+if (HTMLfirstChrom === "Y") {
+  originalDataArray = [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+}
+//Array for rescaled data. Will be filled and changed after changing the position of the slider.
+var rescaledDataArray = [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+
+//Set up variables for every svg element.
+var svg1, svg2, svg3, svg4, svg5, svg6, svg7, svg8, svg9, svg10, svg11, svg12, svg13, svg14, svg15, svg16, svg17, svg18, svg19, svg20, svg21, svg22, svg23;
+var svgs;
+if (HTMLfirstChrom === "Y") {
+  svgs = [svg1, svg2, svg3, svg4, svg5, svg6, svg7, svg8, svg9, svg10, svg11, svg12, svg13, svg14, svg15, svg16, svg17, svg18, svg19, svg20, svg21, svg22, svg23];
+}
+
+//Set up empty objects for each chromosome. Runs only once.
+var objectArray;
+if (HTMLfirstChrom === 'Y') {
+  objectArray = [];
+  for (let index = 0; index < 23; index++) {
+    objectArray.push({
+      chr: index+1,
+      width: null,
+      x: null,
+      x2: null,
+      x3: null,
+      y: null,
+      y2: null,
+      y3: null,
+      xAxis: null,
+      xAxis2: null,
+      xAxis3: null,
+      yAxis: null,
+      yAxis2: null,
+      brush: null,
+      focus: null,
+      rohFocus: null,
+      context: null,
+      cursorFocus: null,
+      cursorText: null,
+      sampleNames: null,
+      colors: null,
+      lines: null
+    });    
+  }
+}
+
+var svgToUse;
+var objectToUse;
+
+var mouseOnDiv;
+document.getElementById("chrViz1").addEventListener("mouseenter", function(  ) {mouseOnDiv = "01";});
+document.getElementById("chrViz2").addEventListener("mouseenter", function(  ) {mouseOnDiv = "02";});
+document.getElementById("chrViz3").addEventListener("mouseenter", function(  ) {mouseOnDiv = "03";});
+document.getElementById("chrViz4").addEventListener("mouseenter", function(  ) {mouseOnDiv = "04";});
+document.getElementById("chrViz5").addEventListener("mouseenter", function(  ) {mouseOnDiv = "05";});
+document.getElementById("chrViz6").addEventListener("mouseenter", function(  ) {mouseOnDiv = "06";});
+document.getElementById("chrViz7").addEventListener("mouseenter", function(  ) {mouseOnDiv = "07";});
+document.getElementById("chrViz8").addEventListener("mouseenter", function(  ) {mouseOnDiv = "08";});
+document.getElementById("chrViz9").addEventListener("mouseenter", function(  ) {mouseOnDiv = "09";});
+document.getElementById("chrViz10").addEventListener("mouseenter", function(  ) {mouseOnDiv = "10";});
+document.getElementById("chrViz11").addEventListener("mouseenter", function(  ) {mouseOnDiv = "11";});
+document.getElementById("chrViz12").addEventListener("mouseenter", function(  ) {mouseOnDiv = "12";});
+document.getElementById("chrViz13").addEventListener("mouseenter", function(  ) {mouseOnDiv = "13";});
+document.getElementById("chrViz14").addEventListener("mouseenter", function(  ) {mouseOnDiv = "14";});
+document.getElementById("chrViz15").addEventListener("mouseenter", function(  ) {mouseOnDiv = "15";});
+document.getElementById("chrViz16").addEventListener("mouseenter", function(  ) {mouseOnDiv = "16";});
+document.getElementById("chrViz17").addEventListener("mouseenter", function(  ) {mouseOnDiv = "17";});
+document.getElementById("chrViz18").addEventListener("mouseenter", function(  ) {mouseOnDiv = "18";});
+document.getElementById("chrViz19").addEventListener("mouseenter", function(  ) {mouseOnDiv = "19";});
+document.getElementById("chrViz20").addEventListener("mouseenter", function(  ) {mouseOnDiv = "20";});
+document.getElementById("chrViz21").addEventListener("mouseenter", function(  ) {mouseOnDiv = "21";});
+document.getElementById("chrViz22").addEventListener("mouseenter", function(  ) {mouseOnDiv = "22";});
+document.getElementById("chrViz23").addEventListener("mouseenter", function(  ) {mouseOnDiv = "23";});
+
+/////////////////////////////////////////////////////////
+//////////////////////// D A T A ////////////////////////
+/////////////////////////////////////////////////////////
+
+var stringDataArray;
+if (HTMLfirstChrom === "Y") {
+  stringDataArray = [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+}
+
