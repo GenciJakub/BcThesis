@@ -47,8 +47,6 @@
     .line { fill: none; }
   </style>
 
-  <!--<script src="d3/d3.js"></script>-->
-
   <script src="https://d3js.org/d3.v4.js"></script>   
   <div id="chrViz00"> 
     <input type="range" min="100000" max="2000000" step="100000" value="100000" oninput="this.nextElementSibling.value = this.value" onchange="updateSlider(this.value)">
